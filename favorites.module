@@ -41,6 +41,13 @@ function favorites_menu() {
     'access arguments' => array('administer favorites settings'),
     'type' => MENU_NORMAL_ITEM,
   );
+  $items['user/%/myfavorites'] = array(
+    'title' => 'My favorites',
+    'page callback' => 'favorites_list',
+    'page arguments' => array(1),
+    'access arguments' => array('manage own favorites'),
+    'type' => MENU_LOCAL_TASK,
+  );
   return $items;
 }
 
@@ -132,8 +139,7 @@ function favorites_block_view($delta = 0) {
     // Create the block content.
     // @todo: Return a render array instead.
     $form_id = drupal_get_form('favorites_add_favorite_form');
-    $output = '<div id="favorites-list">' . favorites_list() . '</div>'
-      . drupal_render($form_id)
+    $output = favorites_list() . drupal_render($form_id)
     ;
     return array(
       'subject' => t('My Favorites'),
@@ -148,7 +154,8 @@ function favorites_block_view($delta = 0) {
 function favorites_list() {
   global $user;
   $favorites = favorites_load_favorites($user->uid);
-  return theme('favorites', array('favorites' => $favorites));
+  return '<div id="favorites-list" class="favorites-list">' . 
+  theme('favorites', array('favorites' => $favorites))  . '</div>';
 }
 
 /**
@@ -161,30 +168,17 @@ function theme_favorites($favorites = array()) {
   $destination = drupal_get_destination();
   $destination = explode('=', $destination['destination'], 2);
   $base_url = str_replace("internal","",url("internal"));	//get the internal base including the ?q= if needed
-  file_put_contents('/tmp/base_url',$base_url);
-  /*
-cat favoriteoutput
-array (
-  0 => '<a href="/drupdev/?q=node/2" class="active">4BUCKS</a> <a href="/drupdev/?q=favorites/remove/2&amp;token=BEpQ4bCOoMnWOLte4GdaHxZC1jvFJIeWLpq-dO7kNxs&amp;destination=node/2" class="favorites-remove" title="delete this item">x</a>',
-  1 => '<a href="/drupdev/?q=node/146">Free item</a> <a href="/drupdev/?q=favorites/remove/1&amp;token=P2nmjAgjPYu5--cj6vyuTHZXkp4wltuYNUkSyyvZIME&amp;destination=node/2" class="favorites-remove" title="delete this item">x</a>',
-)plum:/tmp#
-
-
-		\n<li>%favorite_token for the removal token
-		\n<li>%favorite_title for the description
-		\n<li>%favorite_path for the link
-		\n<li>%favorite_id for the id
-  
-  */
   foreach ($favorites['favorites'] as $favorite) {
-  $link = variable_get('favorites_link_markup', _favorites_default_value('favorites_link_markup'));
-  $link = str_replace('%favorite_token%',$favorite->token,$link);
-  $link = str_replace('%favorite_title%',$favorite->title,$link);
-  $link = str_replace('%favorite_path%',$favorite->path,$link);
-  $link = str_replace('%favorite_id%',$favorite->fid,$link);
-  $link = str_replace('%base_url%',$base_url,$link);
-  $link = str_replace('%destination%',$destination[0],$link);
-  $items[] = $link;
+	  $link = variable_get('favorites_link_markup', _favorites_default_value('favorites_link_markup'));
+	  $link = str_replace('%favorite_token%',$favorite->token,$link);
+	  $link = str_replace('%favorite_title%',$favorite->title,$link);
+	  $link = str_replace('%favorite_path%',$favorite->path,$link);
+	  $link = str_replace('%favorite_id%',$favorite->fid,$link);
+	  $link = str_replace('%base_url%',$base_url,$link);
+	  $link = str_replace('%destination%',$destination[0],$link);
+	  $items[] = $link;
+	  /*
+	  //this was the original favorite link generator, which I've replaced
     $items[] = l(
       $favorite->title,
       $favorite->path,
@@ -203,6 +197,7 @@ array (
         ),
       )
     );
+	*/
   }
   file_put_contents("/tmp/favoriteoutput",var_export($items,true));
   file_put_contents("/tmp/favoriteoutput-themed",var_export(theme('item_list', array('items' => $items, 'type' => 'ul')),true));
@@ -404,6 +399,9 @@ function _favorites_admin() {
 		\n<li>%destination% the current destination
 		\n</ul>"),
     '#required' => TRUE,
+  );
+  $form['favorites_show_user_tab'] = array(
+	
   );
 
   return system_settings_form($form);

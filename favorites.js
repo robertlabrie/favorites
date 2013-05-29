@@ -43,9 +43,9 @@
     },
     rebuild: function(data) {
       if (data.list) {
-        Drupal.detachBehaviors($('div#favorites-list'));
-        $('div#favorites-list').html(data.list);
-        Drupal.attachBehaviors($('div#favorites-list'));
+        Drupal.detachBehaviors($('div.favorites-list'));
+        $('div.favorites-list').html(data.list);
+        Drupal.attachBehaviors($('div.favorites-list'));
       }
     },
     remove: function(caller) {
