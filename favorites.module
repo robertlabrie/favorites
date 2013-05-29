@@ -33,6 +33,14 @@ function favorites_menu() {
     'title' => 'Add favorite via js',
     'type' => MENU_CALLBACK,
   );
+  $items['admin/config/user-interface/favorites'] = array(
+    'title' => 'Favorites',
+    'description' => 'Allows users to add paths on a site to their list of favorites.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_favorites_admin'),
+    'access arguments' => array('administer favorites settings'),
+    'type' => MENU_NORMAL_ITEM,
+  );
   return $items;
 }
 
@@ -343,4 +351,22 @@ function favorites_add_favorite_js() {
       'list' => favorites_list(),
     )
   );
+}
+
+
+function _favorites_admin() {
+  $default_link = "[x] %favorite_text";
+  $form = array();
+
+  $form['onthisdate_maxdisp'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Markup for favorite link'),
+    '#default_value' => variable_get('onthisdate_maxdisp', $default_link),
+    '#size' => 60,
+    '#maxlength' => 60,
+    '#description' => t("The markup of the link to display in the block. Use %favorite_text for the description, %favorite_url for the link, and %favorite_id for the id"),
+    '#required' => TRUE,
+  );
+
+  return system_settings_form($form);
 }
