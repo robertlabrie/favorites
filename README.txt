@@ -5,6 +5,9 @@
   Drupal 6.x Version by:
     Ezra Barnet Gildesgame | ezra-g | http://growingventuresolutions.com
     David Herminghaus | http://drupal.org/user/833794
+	
+  Drupal 7.x rev 1.1 by:
+	Robert Labrie | http://github.com/robertlabrie
 --------------------------------------------------------------------------------
 
 CONTENTS
