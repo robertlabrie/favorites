@@ -160,7 +160,31 @@ function theme_favorites($favorites = array()) {
   $items = array();
   $destination = drupal_get_destination();
   $destination = explode('=', $destination['destination'], 2);
+  $base_url = str_replace("internal","",url("internal"));	//get the internal base including the ?q= if needed
+  file_put_contents('/tmp/base_url',$base_url);
+  /*
+cat favoriteoutput
+array (
+  0 => '<a href="/drupdev/?q=node/2" class="active">4BUCKS</a> <a href="/drupdev/?q=favorites/remove/2&amp;token=BEpQ4bCOoMnWOLte4GdaHxZC1jvFJIeWLpq-dO7kNxs&amp;destination=node/2" class="favorites-remove" title="delete this item">x</a>',
+  1 => '<a href="/drupdev/?q=node/146">Free item</a> <a href="/drupdev/?q=favorites/remove/1&amp;token=P2nmjAgjPYu5--cj6vyuTHZXkp4wltuYNUkSyyvZIME&amp;destination=node/2" class="favorites-remove" title="delete this item">x</a>',
+)plum:/tmp#
+
+
+		\n<li>%favorite_token for the removal token
+		\n<li>%favorite_title for the description
+		\n<li>%favorite_path for the link
+		\n<li>%favorite_id for the id
+  
+  */
   foreach ($favorites['favorites'] as $favorite) {
+  $link = variable_get('favorites_link_markup', _favorites_default_value('favorites_link_markup'));
+  $link = str_replace('%favorite_token%',$favorite->token,$link);
+  $link = str_replace('%favorite_title%',$favorite->title,$link);
+  $link = str_replace('%favorite_path%',$favorite->path,$link);
+  $link = str_replace('%favorite_id%',$favorite->fid,$link);
+  $link = str_replace('%base_url%',$base_url,$link);
+  $link = str_replace('%destination%',$destination[0],$link);
+  $items[] = $link;
     $items[] = l(
       $favorite->title,
       $favorite->path,
@@ -180,6 +204,9 @@ function theme_favorites($favorites = array()) {
       )
     );
   }
+  file_put_contents("/tmp/favoriteoutput",var_export($items,true));
+  file_put_contents("/tmp/favoriteoutput-themed",var_export(theme('item_list', array('items' => $items, 'type' => 'ul')),true));
+  
   return theme('item_list', array('items' => $items, 'type' => 'ul'));
 }
 
@@ -355,18 +382,41 @@ function favorites_add_favorite_js() {
 
 
 function _favorites_admin() {
-  $default_link = "[x] %favorite_text";
+  
   $form = array();
-
-  $form['onthisdate_maxdisp'] = array(
-    '#type' => 'textfield',
+  $form['favorites_instructions'] = array(
+	'#markup' => '<p>Favorites is a block which must be added at admin/structure/blocks. When the favorites block is enabled, users will be able to use it. Permissions must also be set to use the block. Permissions can be set at the module page.</p>',
+  );
+  $form['favorites_link_markup'] = array(
+    '#type' => 'textarea',
+	'#wysiwyg' => false,
     '#title' => t('Markup for favorite link'),
-    '#default_value' => variable_get('onthisdate_maxdisp', $default_link),
+    '#default_value' => variable_get('favorites_link_markup', _favorites_default_value('favorites_link_markup')),
     '#size' => 60,
-    '#maxlength' => 60,
-    '#description' => t("The markup of the link to display in the block. Use %favorite_text for the description, %favorite_url for the link, and %favorite_id for the id"),
+    '#maxlength' => 1024,
+    '#description' => t("The markup of the link to display in the block. Use
+		\n<ul>
+		\n<li>%favorite_token% for the removal token
+		\n<li>%favorite_title% for the description
+		\n<li>%favorite_path% for the link
+		\n<li>%favorite_id% for the id
+		\n<li>%base_url% the base url for the site, including the query string if used
+		\n<li>%destination% the current destination
+		\n</ul>"),
     '#required' => TRUE,
   );
 
   return system_settings_form($form);
+}
+
+/**
+ * Used for setting default values for forms
+ */
+function _favorites_default_value($key)
+{
+	$default['favorites_link_markup'] = '<a href="%base_url%/%favorite_path%">%favorite_title%</a>' . "\n" . '<sup><a class="favorites-remove" href="%base_url%favorites/remove/%favorite_id%&token=%favorite_token%&destination=%destination%"><small>x</small></a></sup>';
+	$default['favorites_user_page'] = "Manage your favorite pages below.";
+	$default['favorites_user_page_empty'] = "You do not have any favorites defined.";
+	
+	return $default[$key];
 }
