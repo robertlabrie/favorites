@@ -41,13 +41,17 @@ function favorites_menu() {
     'access arguments' => array('administer favorites settings'),
     'type' => MENU_NORMAL_ITEM,
   );
-  $items['user/%/myfavorites'] = array(
-    'title' => 'My favorites',
-    'page callback' => 'favorites_list',
-    'page arguments' => array(1),
-    'access arguments' => array('manage own favorites'),
-    'type' => MENU_LOCAL_TASK,
-  );
+  if (variable_get('favorites_user_tab_show',_favorites_default_value('favorites_user_tab_show')))
+  {
+	//only show the user favorites menu if asked
+	  $items['user/%/myfavorites'] = array(
+		'title' => t(variable_get('favorites_title', _favorites_default_value('favorites_title'))),
+		'page callback' => 'favorites_list',
+		'page arguments' => array(1),
+		'access arguments' => array('manage own favorites'),
+		'type' => MENU_LOCAL_TASK,
+	  );
+  }
   return $items;
 }
 
@@ -142,7 +146,7 @@ function favorites_block_view($delta = 0) {
     $output = favorites_list() . drupal_render($form_id)
     ;
     return array(
-      'subject' => t('My Favorites'),
+      'subject' => t(variable_get('favorites_title', _favorites_default_value('favorites_title'))),
       'content' => $output,
     );
   }
@@ -154,8 +158,15 @@ function favorites_block_view($delta = 0) {
 function favorites_list() {
   global $user;
   $favorites = favorites_load_favorites($user->uid);
-  return '<div id="favorites-list" class="favorites-list">' . 
+  $out = '';
+  if (count($favorites) == 0)
+  {
+	$out .= '<div class="favorites-none">' . t(variable_get('favorites_empty', _favorites_default_value('favorites_empty'))) . "</div>";
+  }
+  $out .= '<div id="favorites-list" class="favorites-list">' . 
   theme('favorites', array('favorites' => $favorites))  . '</div>';
+  
+  return $out;
 }
 
 /**
@@ -198,10 +209,7 @@ function theme_favorites($favorites = array()) {
       )
     );
 	*/
-  }
-  file_put_contents("/tmp/favoriteoutput",var_export($items,true));
-  file_put_contents("/tmp/favoriteoutput-themed",var_export(theme('item_list', array('items' => $items, 'type' => 'ul')),true));
-  
+  }  
   return theme('item_list', array('items' => $items, 'type' => 'ul'));
 }
 
@@ -400,13 +408,49 @@ function _favorites_admin() {
 		\n</ul>"),
     '#required' => TRUE,
   );
-  $form['favorites_show_user_tab'] = array(
-	
+  $form['favorites_user_tab_show'] = array(
+	 '#type' => 'checkbox',
+	 '#title' => t('Show My Favorites tab on user page'),
+	 '#default_value' => variable_get('favorites_user_tab_show',_favorites_default_value('favorites_user_tab_show')),
+  );
+  $form['favorites_title'] = array(
+    '#type' => 'textfield',
+	'#wysiwyg' => false,
+    '#title' => t('Title for favorite block'),
+    '#default_value' => variable_get('favorites_title', _favorites_default_value('favorites_title')),
+    '#size' => 60,
+    '#maxlength' => 60,
+    '#description' => t("This is the title of the favorites section in the block and user page"),
+    '#required' => TRUE,
+  );
+  $form['favorites_empty'] = array(
+    '#type' => 'textfield',
+	'#wysiwyg' => false,
+    '#title' => t('Text displayed if there are no favorites.'),
+    '#default_value' => variable_get('favorites_empty', _favorites_default_value('favorites_empty')),
+    '#size' => 60,
+    '#maxlength' => 60,
+    '#description' => t(""),
+    '#required' => TRUE,
   );
 
   return system_settings_form($form);
 }
-
+function favorites_form_alter(&$form, $form_state, $form_id)
+{
+	/*
+	hook_menu is cached, so it's not called when the form is posted
+	we can't use an on_submit callback for the form, because it fires before the database write
+	so we end up here, rebuilding the menu when the admin form renders, because it will render
+	after a submit when the new values are posted
+	
+	*/
+	if ($form_id == '_favorites_admin')
+	{
+		menu_rebuild();
+		menu_reset_static_cache();
+	}
+}
 /**
  * Used for setting default values for forms
  */
@@ -414,7 +458,18 @@ function _favorites_default_value($key)
 {
 	$default['favorites_link_markup'] = '<a href="%base_url%/%favorite_path%">%favorite_title%</a>' . "\n" . '<sup><a class="favorites-remove" href="%base_url%favorites/remove/%favorite_id%&token=%favorite_token%&destination=%destination%"><small>x</small></a></sup>';
 	$default['favorites_user_page'] = "Manage your favorite pages below.";
-	$default['favorites_user_page_empty'] = "You do not have any favorites defined.";
-	
+	$default['favorites_empty'] = "<i>No favorites defined.</i>";
+	$default['favorites_user_tab_show'] = 1;
+	$default['favorites_title'] = "My Favorites";
 	return $default[$key];
+}
+
+
+function _favorites_objecthell($obj)
+{
+	ob_start();
+	var_dump($obj);
+	$dataDump = ob_get_clean();
+	ob_end_clean();
+	return $dataDump;
 }
