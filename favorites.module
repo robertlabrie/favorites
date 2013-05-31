@@ -38,7 +38,7 @@ function favorites_menu() {
     'description' => 'Allows users to add paths on a site to their list of favorites.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('_favorites_admin'),
-    'access arguments' => array('administer favorites settings'),
+    'access arguments' => array('administer site configuration'),
     'type' => MENU_NORMAL_ITEM,
   );
   if (variable_get('favorites_user_tab_show',_favorites_default_value('favorites_user_tab_show')))
