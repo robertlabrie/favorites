@@ -156,6 +156,7 @@ function favorites_block_view($delta = 0) {
  * Generate the "My Favorites" list.
  */
 function favorites_list() {
+  drupal_add_js(drupal_get_path('module', 'favorites') . '/favorites.js');
   global $user;
   $favorites = favorites_load_favorites($user->uid);
   $out = '';
